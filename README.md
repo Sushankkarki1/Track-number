@@ -84,8 +84,8 @@ When the app starts, SQLAlchemy creates missing tables safely. It does not drop 
 Copy `.env.example` to `.env` and update the password:
 
 ```env
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/track_number_db
-ADMIN_SECRET_KEY=change-this-admin-cookie-secret
+DATABASE_URL=postgresql://postgres:*******@localhost:5432/track_number_db
+ADMIN_SECRET_KEY=******
 ```
 
 Do not commit your real `.env` file.
@@ -109,7 +109,7 @@ uvicorn app.main:app --reload
 Open:
 
 ```text
-http://127.0.0.1:8000
+http://127.0.0.1:9000
 ```
 
 ## API Endpoints
@@ -128,8 +128,8 @@ http://127.0.0.1:8000
 
 API docs:
 
-- `http://127.0.0.1:8000/docs`
-- `http://127.0.0.1:8000/redoc`
+- `http://127.0.0.1:9000/docs`
+- `http://127.0.0.1:9000/redoc`
 
 ## Sample Data
 
