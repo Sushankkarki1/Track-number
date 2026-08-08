@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Result - Track Number</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <main class="page-center">
+        <section class="result-card">
+            {% if vehicle %}
+            <p class="status success">Vehicle Found</p>
+            <h1>{{ vehicle.registration_number }}</h1>
+
+            <dl class="details-list">
+                <div>
+                    <dt>Vehicle Name</dt>
+                    <dd>{{ vehicle.vehicle_name }}</dd>
+                </div>
+                <div>
+                    <dt>Model</dt>
+                    <dd>{{ vehicle.model }}</dd>
+                </div>
+                <div>
+                    <dt>Owner</dt>
+                    <dd>{{ vehicle.owner.full_name }}</dd>
+                </div>
+                <div>
+                    <dt>Registered Year</dt>
+                    <dd>{{ vehicle.registered_year }}</dd>
+                </div>
+                <div>
+                    <dt>Color</dt>
+                    <dd>{{ vehicle.color }}</dd>
+                </div>
+            </dl>
+            <a class="button-link" href="/">Search Another Vehicle</a>
+            {% else %}
+            <p class="status error">{{ error or message }}</p>
+            {% if registration_number %}
+            <p class="description">Registration Number: {{ registration_number }}</p>
+            {% endif %}
+            <a class="button-link" href="/">Try Another Number</a>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

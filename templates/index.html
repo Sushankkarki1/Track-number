@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Number</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <main class="page-center">
+        <section class="search-card">
+            <p class="logo-text">TRACK NUMBER</p>
+            <h1>Vehicle Registration Lookup</h1>
+            <p class="description">
+                Enter a sample vehicle registration number to search stored academic demo records.
+            </p>
+
+            {% if message %}
+            <p class="message error">{{ message }}</p>
+            {% endif %}
+
+            <form class="search-form" action="/result" method="get">
+                <label for="registration_number">Registration Number</label>
+                <input
+                    id="registration_number"
+                    name="registration_number"
+                    type="text"
+                    placeholder="BA2PA1234"
+                    value="{{ registration_number or '' }}"
+                    required
+                >
+                <button type="submit">SEARCH</button>
+            </form>
+
+            <nav class="small-links">
+                <a href="/admin">Admin Panel</a>
+                <a href="/docs">API Docs</a>
+            </nav>
+        </section>
+    </main>
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

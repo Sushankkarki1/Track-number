@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Track Number</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <main class="page-center">
+        <section class="search-card">
+            <p class="logo-text">TRACK NUMBER</p>
+            <h1>Admin Login</h1>
+            <p class="description">Login to manage vehicle records.</p>
+
+            {% if request.query_params.get('message') %}
+            <p class="message success">{{ request.query_params.get('message') }}</p>
+            {% endif %}
+            {% if error %}
+            <p class="message error">{{ error }}</p>
+            {% endif %}
+
+            <form class="search-form" action="/admin/login" method="post">
+                <label for="username">Username</label>
+                <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    placeholder="admin"
+                    required
+                >
+
+                <label for="password">Password</label>
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="Password"
+                    required
+                >
+
+                <button type="submit">LOGIN</button>
+            </form>
+
+            <nav class="small-links">
+                <a href="/">Search Page</a>
+            </nav>
+        </section>
+    </main>
+</body>
+</html>

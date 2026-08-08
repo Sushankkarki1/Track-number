@@ -1,9 +1,7 @@
-from fastapi import FastAPI
+"""Compatibility entrypoint.
 
-app = FastAPI(title="Track Number")
+Run the project with:
+uvicorn app.main:app --reload
+"""
 
-@app.get("/")
-def home():
-    return {
-        "message": "Welcome to Track Number Project"
-    }
+from app.main import app
