@@ -84,7 +84,7 @@ When the app starts, SQLAlchemy creates missing tables safely. It does not drop 
 Copy `.env.example` to `.env` and update the password:
 
 ```env
-DATABASE_URL=postgresql://postgres:*******@localhost:5432/track_number_db
+DATABASE_URL=postgresql://postgres:krab123@localhost:5432/track_number_db
 ADMIN_SECRET_KEY=******
 ```
 
@@ -109,7 +109,7 @@ uvicorn app.main:app --reload
 Open:
 
 ```text
-http://127.0.0.1:9000
+http://127.0.0.1:8000
 ```
 
 ## API Endpoints
@@ -128,8 +128,8 @@ http://127.0.0.1:9000
 
 API docs:
 
-- `http://127.0.0.1:9000/docs`
-- `http://127.0.0.1:9000/redoc`
+- `http://127.0.0.1:8000/docs`
+- `http://127.0.0.1:8000/redoc`
 
 ## Sample Data
 
@@ -140,13 +140,13 @@ Owners:
 
 Vehicles:
 
-- BA2PA1234, Hayabusa, model 2026, registered year 2021, Black
-- BA1CHA5678, Royal Enfield Hunter 350, model 2024, registered year 2023, Red
+- BA1PA1234, Hayabusa, model 2026, registered year 2021, Black
+- BA2PA1234, CRF 250 Rally, model 2020, registered year 2021, Red
 
 Admin:
 
 - username: admin
-- password: admin123
+- password: Karki@123
 
 The password is stored as a simple salted hash for academic demonstration.
 The admin portal checks this password before allowing access to `/admin`.
@@ -155,8 +155,8 @@ The admin portal checks this password before allowing access to `/admin`.
 
 Try these inputs on the home page:
 
-- `BA2PA1234` should show Sushank Karki
-- `BA1CHA5678` should show Ram Sharma
+- `BA1PA1234` should show Sushank Karki
+- `BA2PA1234` should show Kushal Karki
 - `BA9XYZ9999` should show no vehicle record found
 - `abc` should show invalid registration number
 - Empty input should show browser/form validation
