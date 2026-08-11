@@ -22,37 +22,58 @@ def normalize_owner_name(owner_name: str) -> str:
 
 
 def hash_password(password: str) -> str:
-    """Hash a password with a random salt using only the Python standard library."""
+    """Hash a password with a random salt."""
     salt = secrets.token_hex(16)
+
     password_hash = hashlib.sha256(
         f"{salt}{password}".encode("utf-8")
     ).hexdigest()
+
     return f"{salt}${password_hash}"
 
 
+# ============================================================
+# VEHICLE FUNCTIONS
+# ============================================================
+
 def get_vehicle_by_registration(
-    db: Session, registration_number: str
+    db: Session,
+    registration_number: str,
 ) -> models.Vehicle | None:
-    clean_number = normalize_registration_number(registration_number)
+
+    clean_number = normalize_registration_number(
+        registration_number
+    )
 
     return (
         db.query(models.Vehicle)
         .options(joinedload(models.Vehicle.owner))
-        .filter(models.Vehicle.registration_number == clean_number)
+        .filter(
+            models.Vehicle.registration_number == clean_number
+        )
         .first()
     )
 
 
-def get_vehicle(db: Session, vehicle_id: int) -> models.Vehicle | None:
+def get_vehicle(
+    db: Session,
+    vehicle_id: int,
+) -> models.Vehicle | None:
+
     return (
         db.query(models.Vehicle)
         .options(joinedload(models.Vehicle.owner))
-        .filter(models.Vehicle.vehicle_id == vehicle_id)
+        .filter(
+            models.Vehicle.vehicle_id == vehicle_id
+        )
         .first()
     )
 
 
-def get_vehicles(db: Session) -> list[models.Vehicle]:
+def get_vehicles(
+    db: Session,
+) -> list[models.Vehicle]:
+
     return (
         db.query(models.Vehicle)
         .options(joinedload(models.Vehicle.owner))
@@ -61,7 +82,14 @@ def get_vehicles(db: Session) -> list[models.Vehicle]:
     )
 
 
-def get_owners(db: Session) -> list[models.Owner]:
+# ============================================================
+# OWNER FUNCTIONS
+# ============================================================
+
+def get_owners(
+    db: Session,
+) -> list[models.Owner]:
+
     return (
         db.query(models.Owner)
         .order_by(models.Owner.full_name)
@@ -70,9 +98,10 @@ def get_owners(db: Session) -> list[models.Owner]:
 
 
 def get_owner_by_name(
-    db: Session, owner_name: str
+    db: Session,
+    owner_name: str,
 ) -> models.Owner | None:
-    """Find an owner by name, ignoring capitalization and extra spaces."""
+
     clean_name = normalize_owner_name(owner_name)
 
     if not clean_name:
@@ -94,24 +123,24 @@ def get_or_create_owner(
     phone: str = "N/A",
     address: str = "N/A",
 ) -> models.Owner:
-    """
-    Find an owner by name or create a new owner.
-
-    The new owner is only added/flushed here. The final commit is
-    performed by create_vehicle/update_vehicle. This means if the
-    vehicle operation fails, the new owner is rolled back as well.
-    """
 
     clean_name = normalize_owner_name(owner_name)
 
     if not clean_name:
-        raise ValueError("Owner name is required.")
+        raise ValueError(
+            "Owner name is required."
+        )
 
-    existing_owner = get_owner_by_name(db, clean_name)
+    # Check whether the owner already exists.
+    existing_owner = get_owner_by_name(
+        db,
+        clean_name,
+    )
 
-    if existing_owner is not None:
+    if existing_owner:
         return existing_owner
 
+    # Create new owner.
     new_owner = models.Owner(
         full_name=clean_name,
         phone=phone.strip() if phone else "N/A",
@@ -121,23 +150,62 @@ def get_or_create_owner(
     db.add(new_owner)
     db.flush()
 
-    logger.info("Created new owner: %s", clean_name)
+    logger.info(
+        "Created new owner: %s",
+        clean_name,
+    )
 
     return new_owner
 
 
+# ============================================================
+# ADMIN FUNCTIONS
+# ============================================================
+
 def get_admin_by_username(
-    db: Session, username: str
+    db: Session,
+    username: str,
 ) -> models.Admin | None:
+
     return (
         db.query(models.Admin)
-        .filter(models.Admin.username == username)
+        .filter(
+            models.Admin.username == username
+        )
         .first()
     )
 
 
+def update_admin_password(
+    db: Session,
+    username: str,
+    new_password: str,
+) -> bool:
+
+    admin = get_admin_by_username(
+        db,
+        username,
+    )
+
+    if admin is None:
+        return False
+
+    admin.password = hash_password(
+        new_password
+    )
+
+    db.commit()
+
+    return True
+
+
+# ============================================================
+# CREATE VEHICLE
+# ============================================================
+
 def create_vehicle(
-    db: Session, vehicle: schemas.VehicleCreate
+    db: Session,
+    vehicle: schemas.VehicleCreate,
 ) -> models.Vehicle:
 
     new_vehicle = models.Vehicle(
@@ -154,9 +222,11 @@ def create_vehicle(
     db.add(new_vehicle)
 
     try:
+
         db.commit()
 
     except IntegrityError as exc:
+
         db.rollback()
 
         logger.warning(
@@ -165,7 +235,8 @@ def create_vehicle(
         )
 
         raise ValueError(
-            "Registration number already exists or owner is invalid."
+            "Registration number already exists "
+            "or owner is invalid."
         ) from exc
 
     db.refresh(new_vehicle)
@@ -173,13 +244,20 @@ def create_vehicle(
     return new_vehicle
 
 
+# ============================================================
+# UPDATE VEHICLE
+# ============================================================
+
 def update_vehicle(
     db: Session,
     vehicle_id: int,
     vehicle: schemas.VehicleUpdate,
 ) -> models.Vehicle | None:
 
-    existing_vehicle = get_vehicle(db, vehicle_id)
+    existing_vehicle = get_vehicle(
+        db,
+        vehicle_id,
+    )
 
     if existing_vehicle is None:
         return None
@@ -190,16 +268,32 @@ def update_vehicle(
         )
     )
 
-    existing_vehicle.vehicle_name = vehicle.vehicle_name.strip()
-    existing_vehicle.model = vehicle.model.strip()
-    existing_vehicle.registered_year = vehicle.registered_year
-    existing_vehicle.color = vehicle.color.strip()
-    existing_vehicle.owner_id = vehicle.owner_id
+    existing_vehicle.vehicle_name = (
+        vehicle.vehicle_name.strip()
+    )
+
+    existing_vehicle.model = (
+        vehicle.model.strip()
+    )
+
+    existing_vehicle.registered_year = (
+        vehicle.registered_year
+    )
+
+    existing_vehicle.color = (
+        vehicle.color.strip()
+    )
+
+    existing_vehicle.owner_id = (
+        vehicle.owner_id
+    )
 
     try:
+
         db.commit()
 
     except IntegrityError as exc:
+
         db.rollback()
 
         logger.warning(
@@ -208,7 +302,8 @@ def update_vehicle(
         )
 
         raise ValueError(
-            "Registration number already exists or owner is invalid."
+            "Registration number already exists "
+            "or owner is invalid."
         ) from exc
 
     db.refresh(existing_vehicle)
@@ -216,9 +311,19 @@ def update_vehicle(
     return existing_vehicle
 
 
-def delete_vehicle(db: Session, vehicle_id: int) -> bool:
+# ============================================================
+# DELETE VEHICLE
+# ============================================================
 
-    vehicle = get_vehicle(db, vehicle_id)
+def delete_vehicle(
+    db: Session,
+    vehicle_id: int,
+) -> bool:
+
+    vehicle = get_vehicle(
+        db,
+        vehicle_id,
+    )
 
     if vehicle is None:
         return False
@@ -229,8 +334,14 @@ def delete_vehicle(db: Session, vehicle_id: int) -> bool:
     return True
 
 
-def seed_sample_data(db: Session) -> None:
-    """Add sample data only when tables are empty."""
+# ============================================================
+# SAMPLE DATA
+# ============================================================
+
+def seed_sample_data(
+    db: Session,
+) -> None:
+    """Add sample data only when the database is empty."""
 
     if db.query(models.Owner).first() is not None:
         return
@@ -242,12 +353,17 @@ def seed_sample_data(db: Session) -> None:
     )
 
     owner_two = models.Owner(
-        full_name="Kushal Karki",
+        full_name="Ram Sharma",
         phone="9801111111",
         address="Pokhara",
     )
 
-    db.add_all([owner_one, owner_two])
+    db.add_all(
+        [
+            owner_one,
+            owner_two,
+        ]
+    )
 
     db.flush()
 
@@ -261,6 +377,7 @@ def seed_sample_data(db: Session) -> None:
                 color="Black",
                 owner_id=owner_one.owner_id,
             ),
+
             models.Vehicle(
                 registration_number="BA1CHA5678",
                 vehicle_name="Royal Enfield Hunter 350",
@@ -275,7 +392,9 @@ def seed_sample_data(db: Session) -> None:
     db.add(
         models.Admin(
             username="admin",
-            password=hash_password("admin123"),
+            password=hash_password(
+                "admin123"
+            ),
         )
     )
 

@@ -7,21 +7,38 @@ from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app import auth, crud, schemas
+from app import auth, crud, schemas, models
 from app.database import get_db
 from app.routers.search import is_valid_registration_number
 from app.utils.logger.central_logger import logger
 
 
-router = APIRouter(
-    prefix="/admin",
-    tags=["Admin"],
-)
+router = APIRouter(prefix="/admin", tags=["Admin"])
+templates = Jinja2Templates(directory="templates")
 
-templates = Jinja2Templates(
-    directory="templates"
-)
 
+# ============================================================
+# FORGOT PASSWORD SETTINGS
+# ============================================================
+#
+# CHANGE THESE TO YOUR OWN QUESTION AND ANSWER.
+#
+# The answer is case-insensitive.
+#
+# Example:
+#
+# RESET_QUESTION = "What was my first bike?"
+# RESET_ANSWER = "yamaha"
+#
+# ============================================================
+
+RESET_QUESTION = "What is your favorite programming language?"
+RESET_ANSWER = "python"
+
+
+# ============================================================
+# HELPERS
+# ============================================================
 
 def _admin_login_redirect() -> RedirectResponse:
     return RedirectResponse(
@@ -38,6 +55,13 @@ def _require_admin_api(request: Request) -> None:
         )
 
 
+def _normalize_reset_answer(answer: str) -> str:
+    """Normalize security-answer input."""
+    return " ".join(
+        answer.strip().lower().split()
+    )
+
+
 def _vehicle_schema_from_form(
     form: dict,
     db: Session,
@@ -52,6 +76,10 @@ def _vehicle_schema_from_form(
             "Please enter a valid registration number."
         )
 
+    # ---------------------------------------------
+    # Basic vehicle information
+    # ---------------------------------------------
+
     vehicle_name = str(
         form.get("vehicle_name", "")
     ).strip()
@@ -64,67 +92,82 @@ def _vehicle_schema_from_form(
         form.get("color", "")
     ).strip()
 
+    try:
+        registered_year = int(
+            str(form.get("registered_year", "0"))
+        )
+    except ValueError as exc:
+        raise ValueError(
+            "Registered year must be a valid number."
+        ) from exc
+
+    # ---------------------------------------------
+    # OWNER NAME
+    # ---------------------------------------------
+    #
+    # The HTML form now sends owner_name instead
+    # of owner_id.
+    #
+    # If the owner already exists:
+    #     use the existing owner_id.
+    #
+    # If the owner does not exist:
+    #     create a new owner automatically.
+    # ---------------------------------------------
+
     owner_name = str(
         form.get("owner_name", "")
     ).strip()
-
-    if not vehicle_name:
-        raise ValueError(
-            "Vehicle name is required."
-        )
-
-    if not model:
-        raise ValueError(
-            "Vehicle model is required."
-        )
-
-    if not color:
-        raise ValueError(
-            "Vehicle color is required."
-        )
 
     if not owner_name:
         raise ValueError(
             "Owner name is required."
         )
 
-    try:
-        registered_year = int(
-            str(
-                form.get(
-                    "registered_year",
-                    "0",
-                )
-            )
+    # Look for an existing owner.
+    owner = (
+        db.query(models.Owner)
+        .filter(
+            models.Owner.full_name.ilike(owner_name)
         )
-
-    except ValueError as exc:
-        raise ValueError(
-            "Registered year must be a valid number."
-        ) from exc
-
-    if registered_year < 1900 or registered_year > 2100:
-        raise ValueError(
-            "Registered year must be between 1900 and 2100."
-        )
-
-    # Optional owner information.
-    # If not provided, the database stores N/A.
-    owner_phone = str(
-        form.get("owner_phone", "")
-    ).strip()
-
-    owner_address = str(
-        form.get("owner_address", "")
-    ).strip()
-
-    # Find existing owner or create a new one.
-    owner = crud.get_or_create_owner(
-        db=db,
-        owner_name=owner_name,
-        phone=owner_phone or "N/A",
-        address=owner_address or "N/A",
+        .first()
     )
+
+    # ---------------------------------------------
+    # Existing owner
+    # ---------------------------------------------
+
+    if owner is None:
+
+        owner_phone = str(
+            form.get("owner_phone", "")
+        ).strip()
+
+        owner_address = str(
+            form.get("owner_address", "")
+        ).strip()
+
+        # These columns are NOT nullable in your
+        # database, so provide safe defaults when
+        # phone/address are not entered.
+        if not owner_phone:
+            owner_phone = "Not provided"
+
+        if not owner_address:
+            owner_address = "Not provided"
+
+        owner = models.Owner(
+            full_name=owner_name,
+            phone=owner_phone,
+            address=owner_address,
+        )
+
+        db.add(owner)
+        db.flush()
+
+    # ---------------------------------------------
+    # Create VehicleCreate schema
+    # ---------------------------------------------
 
     return schemas.VehicleCreate(
         registration_number=registration_number,
@@ -135,6 +178,9 @@ def _vehicle_schema_from_form(
         owner_id=owner.owner_id,
     )
 
+# ============================================================
+# ADMIN LOGIN
+# ============================================================
 
 @router.get(
     "/login",
@@ -146,6 +192,7 @@ def admin_login_page(
 ) -> HTMLResponse | RedirectResponse:
 
     if auth.is_admin_request(request):
+
         return RedirectResponse(
             url="/admin",
             status_code=303,
@@ -169,14 +216,21 @@ async def admin_login(
     form = await request.form()
 
     username = str(
-        form.get("username", "")
+        form.get(
+            "username",
+            "",
+        )
     ).strip()
 
     password = str(
-        form.get("password", "")
+        form.get(
+            "password",
+            "",
+        )
     )
 
     try:
+
         admin_user = crud.get_admin_by_username(
             db,
             username,
@@ -193,10 +247,9 @@ async def admin_login(
             request,
             "admin_login.html",
             {
-                "error": (
+                "error":
                     "Database connection failed. "
                     "Please check your setup."
-                )
             },
             status_code=500,
         )
@@ -208,13 +261,13 @@ async def admin_login(
             admin_user.password,
         )
     ):
+
         return templates.TemplateResponse(
             request,
             "admin_login.html",
             {
-                "error": (
+                "error":
                     "Invalid username or password."
-                )
             },
             status_code=401,
         )
@@ -236,6 +289,295 @@ async def admin_login(
     return response
 
 
+# ============================================================
+# FORGOT PASSWORD PAGE
+# ============================================================
+
+@router.get(
+    "/forgot-password",
+    response_class=HTMLResponse,
+    response_model=None,
+)
+def forgot_password_page(
+    request: Request,
+) -> HTMLResponse:
+
+    return templates.TemplateResponse(
+        request,
+        "admin_login.html",
+        {
+            "forgot_password": True,
+            "reset_question": RESET_QUESTION,
+            "error": None,
+            "message": None,
+        },
+    )
+
+
+# ============================================================
+# FORGOT PASSWORD / RESET PASSWORD
+# ============================================================
+
+@router.post(
+    "/forgot-password",
+    response_model=None,
+)
+async def forgot_password(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+
+    form = await request.form()
+
+    username = str(
+        form.get(
+            "username",
+            "",
+        )
+    ).strip()
+
+    answer = str(
+        form.get(
+            "answer",
+            "",
+        )
+    )
+
+    new_password = str(
+        form.get(
+            "new_password",
+            "",
+        )
+    )
+
+    confirm_password = str(
+        form.get(
+            "confirm_password",
+            "",
+        )
+    )
+
+    # --------------------------------------------------------
+    # Validate username
+    # --------------------------------------------------------
+
+    if not username:
+
+        return templates.TemplateResponse(
+            request,
+            "admin_login.html",
+            {
+                "forgot_password": True,
+                "reset_question": RESET_QUESTION,
+                "error": "Username is required.",
+                "message": None,
+            },
+            status_code=400,
+        )
+
+
+    # --------------------------------------------------------
+    # Validate security answer
+    # --------------------------------------------------------
+
+    if not answer:
+
+        return templates.TemplateResponse(
+            request,
+            "admin_login.html",
+            {
+                "forgot_password": True,
+                "reset_question": RESET_QUESTION,
+                "error": "Security answer is required.",
+                "message": None,
+            },
+            status_code=400,
+        )
+
+
+    correct_answer = _normalize_reset_answer(
+        RESET_ANSWER
+    )
+
+    provided_answer = _normalize_reset_answer(
+        answer
+    )
+
+    if provided_answer != correct_answer:
+
+        return templates.TemplateResponse(
+            request,
+            "admin_login.html",
+            {
+                "forgot_password": True,
+                "reset_question": RESET_QUESTION,
+                "error": "Incorrect security answer.",
+                "message": None,
+            },
+            status_code=400,
+        )
+
+
+    # --------------------------------------------------------
+    # Validate new password
+    # --------------------------------------------------------
+
+    if not new_password:
+
+        return templates.TemplateResponse(
+            request,
+            "admin_login.html",
+            {
+                "forgot_password": True,
+                "reset_question": RESET_QUESTION,
+                "error": "New password is required.",
+                "message": None,
+            },
+            status_code=400,
+        )
+
+
+    if len(new_password) < 8:
+
+        return templates.TemplateResponse(
+            request,
+            "admin_login.html",
+            {
+                "forgot_password": True,
+                "reset_question": RESET_QUESTION,
+                "error":
+                    "New password must be at least 8 characters.",
+                "message": None,
+            },
+            status_code=400,
+        )
+
+
+    if new_password != confirm_password:
+
+        return templates.TemplateResponse(
+            request,
+            "admin_login.html",
+            {
+                "forgot_password": True,
+                "reset_question": RESET_QUESTION,
+                "error":
+                    "New passwords do not match.",
+                "message": None,
+            },
+            status_code=400,
+        )
+
+
+    # --------------------------------------------------------
+    # Find admin account
+    # --------------------------------------------------------
+
+    try:
+
+        admin_user = crud.get_admin_by_username(
+            db,
+            username,
+        )
+
+    except SQLAlchemyError as exc:
+
+        logger.error(
+            "Forgot password database lookup failed: %s",
+            exc,
+        )
+
+        return templates.TemplateResponse(
+            request,
+            "admin_login.html",
+            {
+                "forgot_password": True,
+                "reset_question": RESET_QUESTION,
+                "error":
+                    "Database connection failed.",
+                "message": None,
+            },
+            status_code=500,
+        )
+
+
+    if admin_user is None:
+
+        return templates.TemplateResponse(
+            request,
+            "admin_login.html",
+            {
+                "forgot_password": True,
+                "reset_question": RESET_QUESTION,
+                "error":
+                    "Admin account was not found.",
+                "message": None,
+            },
+            status_code=404,
+        )
+
+
+    # --------------------------------------------------------
+    # Change password
+    #
+    # IMPORTANT:
+    # We use the exact same hash_password()
+    # function already present in your original crud.py.
+    # --------------------------------------------------------
+
+    try:
+
+        admin_user.password = crud.hash_password(
+            new_password
+        )
+
+        db.commit()
+
+    except SQLAlchemyError as exc:
+
+        db.rollback()
+
+        logger.error(
+            "Password reset failed: %s",
+            exc,
+        )
+
+        return templates.TemplateResponse(
+            request,
+            "admin_login.html",
+            {
+                "forgot_password": True,
+                "reset_question": RESET_QUESTION,
+                "error":
+                    "Could not reset password.",
+                "message": None,
+            },
+            status_code=500,
+        )
+
+
+    # --------------------------------------------------------
+    # Password successfully changed
+    # --------------------------------------------------------
+
+    return templates.TemplateResponse(
+        request,
+        "admin_login.html",
+        {
+            "forgot_password": False,
+            "reset_question": RESET_QUESTION,
+            "error": None,
+            "message":
+                "Password reset successfully. "
+                "You can now login with your new password.",
+        },
+    )
+
+
+# ============================================================
+# LOGOUT
+# ============================================================
+
 @router.get(
     "/logout",
     response_model=None,
@@ -253,6 +595,10 @@ def admin_logout() -> RedirectResponse:
 
     return response
 
+
+# ============================================================
+# ADMIN DASHBOARD
+# ============================================================
 
 @router.get(
     "",
@@ -288,6 +634,7 @@ def admin_page(
         )
 
     else:
+
         error = None
 
     return templates.TemplateResponse(
@@ -300,6 +647,10 @@ def admin_page(
         },
     )
 
+
+# ============================================================
+# LIST VEHICLES API
+# ============================================================
 
 @router.get(
     "/vehicles",
@@ -314,6 +665,10 @@ def list_vehicles(
 
     return crud.get_vehicles(db)
 
+
+# ============================================================
+# ADD VEHICLE API
+# ============================================================
 
 @router.post(
     "/vehicles",
@@ -331,6 +686,7 @@ def add_vehicle(
     if not is_valid_registration_number(
         vehicle.registration_number
     ):
+
         raise HTTPException(
             status_code=400,
             detail=(
@@ -366,6 +722,10 @@ def add_vehicle(
         ) from exc
 
 
+# ============================================================
+# UPDATE VEHICLE API
+# ============================================================
+
 @router.put(
     "/vehicles/{vehicle_id}",
     response_model=schemas.VehicleRead,
@@ -382,6 +742,7 @@ def edit_vehicle(
     if not is_valid_registration_number(
         vehicle.registration_number
     ):
+
         raise HTTPException(
             status_code=400,
             detail=(
@@ -419,6 +780,7 @@ def edit_vehicle(
         ) from exc
 
     if updated_vehicle is None:
+
         raise HTTPException(
             status_code=404,
             detail="Vehicle not found.",
@@ -426,6 +788,10 @@ def edit_vehicle(
 
     return updated_vehicle
 
+
+# ============================================================
+# DELETE VEHICLE API
+# ============================================================
 
 @router.delete(
     "/vehicles/{vehicle_id}",
@@ -460,11 +826,15 @@ def remove_vehicle(
         ) from exc
 
     if not deleted:
+
         raise HTTPException(
             status_code=404,
-            detail="Vehicle not found.",
-        )
+            detail="Vehicle not found.")
 
+
+# ============================================================
+# ADD VEHICLE FROM HTML FORM
+# ============================================================
 
 @router.post(
     "/vehicles/form",
@@ -483,8 +853,7 @@ async def add_vehicle_from_form(
     try:
 
         vehicle = _vehicle_schema_from_form(
-            dict(form),
-            db,
+            dict(form), db
         )
 
         crud.create_vehicle(
@@ -497,8 +866,6 @@ async def add_vehicle_from_form(
         ValidationError,
     ) as exc:
 
-        db.rollback()
-
         return _admin_error_response(
             request,
             db,
@@ -506,8 +873,6 @@ async def add_vehicle_from_form(
         )
 
     except SQLAlchemyError as exc:
-
-        db.rollback()
 
         logger.error(
             "Create vehicle form failed: %s",
@@ -525,6 +890,10 @@ async def add_vehicle_from_form(
         status_code=303,
     )
 
+
+# ============================================================
+# EDIT VEHICLE FROM HTML FORM
+# ============================================================
 
 @router.post(
     "/vehicles/{vehicle_id}/edit",
@@ -544,8 +913,7 @@ async def edit_vehicle_from_form(
     try:
 
         form_vehicle = _vehicle_schema_from_form(
-            dict(form),
-            db,
+            dict(form), db
         )
 
         vehicle = schemas.VehicleUpdate(
@@ -563,8 +931,6 @@ async def edit_vehicle_from_form(
         ValidationError,
     ) as exc:
 
-        db.rollback()
-
         return _admin_error_response(
             request,
             db,
@@ -572,8 +938,6 @@ async def edit_vehicle_from_form(
         )
 
     except SQLAlchemyError as exc:
-
-        db.rollback()
 
         logger.error(
             "Update vehicle form failed for id %s: %s",
@@ -600,6 +964,10 @@ async def edit_vehicle_from_form(
         status_code=303,
     )
 
+
+# ============================================================
+# DELETE VEHICLE FROM HTML FORM
+# ============================================================
 
 @router.post(
     "/vehicles/{vehicle_id}/delete",
@@ -646,6 +1014,10 @@ def delete_vehicle_from_form(
         status_code=303,
     )
 
+
+# ============================================================
+# ADMIN ERROR RESPONSE
+# ============================================================
 
 def _admin_error_response(
     request: Request,

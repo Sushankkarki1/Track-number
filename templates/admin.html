@@ -1,24 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Admin - Track Number</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <link rel="stylesheet" href="/static/css/style.css">
+    <title>
+        Admin - Track Number
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css"
+    >
+
 </head>
+
 
 <body>
 
 <main class="admin-page">
 
+
+    <!-- ================================================= -->
+    <!-- HEADER -->
+    <!-- ================================================= -->
+
     <header class="top-bar">
 
         <div>
-            <p class="logo-text">TRACK NUMBER</p>
-            <h1>Admin Vehicle Records</h1>
+
+            <p class="logo-text">
+                TRACK NUMBER
+            </p>
+
+            <h1>
+                Admin Vehicle Records
+            </h1>
+
         </div>
+
 
         <nav class="top-actions">
 
@@ -28,6 +54,7 @@
             >
                 Search Page
             </a>
+
 
             <a
                 class="button-link danger"
@@ -41,34 +68,56 @@
     </header>
 
 
+
+    <!-- ================================================= -->
+    <!-- SUCCESS MESSAGE -->
+    <!-- ================================================= -->
+
     {% if request.query_params.get('message') %}
 
     <p class="message success">
+
         {{ request.query_params.get('message') }}
+
     </p>
 
     {% endif %}
 
+
+
+    <!-- ================================================= -->
+    <!-- ERROR MESSAGE -->
+    <!-- ================================================= -->
 
     {% if request.query_params.get('error') or error %}
 
     <p class="message error">
+
         {{ error or request.query_params.get('error') }}
+
     </p>
 
     {% endif %}
 
 
+
+    <!-- ================================================= -->
+    <!-- MAIN GRID -->
+    <!-- ================================================= -->
+
     <section class="admin-grid">
 
 
-        <!-- ============================= -->
+        <!-- ================================================= -->
         <!-- ADD VEHICLE -->
-        <!-- ============================= -->
+        <!-- ================================================= -->
 
         <div class="panel">
 
-            <h2>Add Vehicle</h2>
+            <h2>
+                Add Vehicle
+            </h2>
+
 
             <form
                 class="admin-form"
@@ -76,7 +125,11 @@
                 method="post"
             >
 
+
+                <!-- Registration -->
+
                 <label>
+
                     Registration Number
 
                     <input
@@ -84,10 +137,15 @@
                         placeholder="BA2PA1234"
                         required
                     >
+
                 </label>
 
 
+
+                <!-- Vehicle -->
+
                 <label>
+
                     Vehicle Name
 
                     <input
@@ -95,10 +153,15 @@
                         placeholder="Hayabusa"
                         required
                     >
+
                 </label>
 
 
+
+                <!-- Model -->
+
                 <label>
+
                     Model
 
                     <input
@@ -106,10 +169,15 @@
                         placeholder="2026"
                         required
                     >
+
                 </label>
 
 
+
+                <!-- Registered Year -->
+
                 <label>
+
                     Registered Year
 
                     <input
@@ -120,10 +188,15 @@
                         placeholder="2021"
                         required
                     >
+
                 </label>
 
 
+
+                <!-- Color -->
+
                 <label>
+
                     Color
 
                     <input
@@ -131,17 +204,20 @@
                         placeholder="Black"
                         required
                     >
+
                 </label>
 
 
-                <!-- ============================= -->
-                <!-- WRITABLE OWNER FIELD -->
-                <!-- ============================= -->
+
+                <!-- ================================================= -->
+                <!-- WRITABLE OWNER -->
+                <!-- ================================================= -->
 
                 <label>
-                    Owner Name
+                Owner Name
 
                     <input
+                        type="text"
                         name="owner_name"
                         list="owner-list"
                         placeholder="Type owner name"
@@ -150,29 +226,47 @@
                     >
 
                     <datalist id="owner-list">
-
                         {% for owner in owners %}
-
-                        <option value="{{ owner.full_name }}"></option>
-
+                    <option value="{{ owner.full_name }}">
                         {% endfor %}
-
                     </datalist>
-
                 </label>
 
 
-                <!-- <p class="description">
-                    You can type a new owner name or select an existing owner.
-                    A new owner will be created automatically.
-                </p> -->
+                <datalist id="owner-list">
+
+                    {% for owner in owners %}
+
+                    <option
+                        value="{{ owner.full_name }}"
+                    ></option>
+
+                    {% endfor %}
+
+                </datalist>
 
 
-                <!-- Optional information for a new owner -->
+                <p class="description">
+
+                    You can type a new owner or select
+                    an existing owner.
+
+                    A new owner will be created
+                    automatically.
+
+                </p>
+
+
+
+                <!-- Optional Phone -->
 
                 <label>
+
                     Owner Phone
-                    <span style="font-weight: normal;">
+
+                    <span
+                        style="font-weight: normal;"
+                    >
                         (optional)
                     </span>
 
@@ -181,12 +275,20 @@
                         type="text"
                         placeholder="9812345678"
                     >
+
                 </label>
 
 
+
+                <!-- Optional Address -->
+
                 <label>
+
                     Owner Address
-                    <span style="font-weight: normal;">
+
+                    <span
+                        style="font-weight: normal;"
+                    >
                         (optional)
                     </span>
 
@@ -195,12 +297,17 @@
                         type="text"
                         placeholder="Kathmandu"
                     >
+
                 </label>
 
 
-                <button type="submit">
+
+                <button
+                    type="submit"
+                >
                     Add Vehicle
                 </button>
+
 
             </form>
 
@@ -208,13 +315,16 @@
 
 
 
-        <!-- ============================= -->
+        <!-- ================================================= -->
         <!-- VEHICLE LIST -->
-        <!-- ============================= -->
+        <!-- ================================================= -->
 
         <div class="panel wide">
 
-            <h2>Vehicle List</h2>
+            <h2>
+                Vehicle List
+            </h2>
+
 
             <div class="table-wrap">
 
@@ -224,21 +334,37 @@
 
                         <tr>
 
-                            <th>ID</th>
+                            <th>
+                                ID
+                            </th>
 
-                            <th>Registration</th>
+                            <th>
+                                Registration
+                            </th>
 
-                            <th>Name</th>
+                            <th>
+                                Name
+                            </th>
 
-                            <th>Model</th>
+                            <th>
+                                Model
+                            </th>
 
-                            <th>Owner</th>
+                            <th>
+                                Owner
+                            </th>
 
-                            <th>Year</th>
+                            <th>
+                                Year
+                            </th>
 
-                            <th>Color</th>
+                            <th>
+                                Color
+                            </th>
 
-                            <th>Action</th>
+                            <th>
+                                Action
+                            </th>
 
                         </tr>
 
@@ -247,9 +373,13 @@
 
                     <tbody>
 
+
                     {% for vehicle in vehicles %}
 
-                        <!-- Vehicle display row -->
+
+                        <!-- ========================================= -->
+                        <!-- VEHICLE DISPLAY -->
+                        <!-- ========================================= -->
 
                         <tr>
 
@@ -257,29 +387,36 @@
                                 {{ vehicle.vehicle_id }}
                             </td>
 
+
                             <td>
                                 {{ vehicle.registration_number }}
                             </td>
+
 
                             <td>
                                 {{ vehicle.vehicle_name }}
                             </td>
 
+
                             <td>
                                 {{ vehicle.model }}
                             </td>
+
 
                             <td>
                                 {{ vehicle.owner.full_name }}
                             </td>
 
+
                             <td>
                                 {{ vehicle.registered_year }}
                             </td>
 
+
                             <td>
                                 {{ vehicle.color }}
                             </td>
+
 
                             <td>
 
@@ -302,19 +439,24 @@
                         </tr>
 
 
-                        <!-- ============================= -->
+
+                        <!-- ========================================= -->
                         <!-- EDIT VEHICLE -->
-                        <!-- ============================= -->
+                        <!-- ========================================= -->
 
                         <tr class="edit-row">
 
                             <td colspan="8">
+
 
                                 <form
                                     class="inline-form"
                                     action="/admin/vehicles/{{ vehicle.vehicle_id }}/edit"
                                     method="post"
                                 >
+
+
+                                    <!-- Registration -->
 
                                     <input
                                         name="registration_number"
@@ -323,6 +465,9 @@
                                     >
 
 
+
+                                    <!-- Vehicle -->
+
                                     <input
                                         name="vehicle_name"
                                         value="{{ vehicle.vehicle_name }}"
@@ -330,12 +475,18 @@
                                     >
 
 
+
+                                    <!-- Model -->
+
                                     <input
                                         name="model"
                                         value="{{ vehicle.model }}"
                                         required
                                     >
 
+
+
+                                    <!-- Year -->
 
                                     <input
                                         name="registered_year"
@@ -347,6 +498,9 @@
                                     >
 
 
+
+                                    <!-- Color -->
+
                                     <input
                                         name="color"
                                         value="{{ vehicle.color }}"
@@ -354,7 +508,8 @@
                                     >
 
 
-                                    <!-- Writable owner field -->
+
+                                    <!-- Writable Owner -->
 
                                     <input
                                         name="owner_name"
@@ -381,11 +536,16 @@
                                     </datalist>
 
 
-                                    <button type="submit">
+
+                                    <button
+                                        type="submit"
+                                    >
                                         Update
                                     </button>
 
+
                                 </form>
+
 
                             </td>
 
@@ -394,15 +554,20 @@
 
                     {% else %}
 
+
                         <tr>
 
                             <td colspan="8">
+
                                 No vehicles found.
+
                             </td>
 
                         </tr>
 
+
                     {% endfor %}
+
 
                     </tbody>
 
@@ -412,9 +577,13 @@
 
         </div>
 
+
     </section>
+
 
 </main>
 
+
 </body>
+
 </html>

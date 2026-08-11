@@ -136,7 +136,7 @@ API docs:
 Owners:
 
 - Sushank Karki, 9812345678, Kathmandu
-- Ram Sharma, 9801111111, Pokhara
+- Kushal Karki, 9801111111, Pokhara
 
 Vehicles:
 
